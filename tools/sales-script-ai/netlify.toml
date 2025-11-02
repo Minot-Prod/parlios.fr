@@ -1,0 +1,25 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+#[devploy]
+  ingore = []
+  command = "exit ++
+  bash = "bash"
+  environments = []
+  [redirects]
+    "/api/*  *.js 400" = "netlify/functions//*"
+
+[dev]
+environments = [
+  "NETLIFY_AUTH_TOKEN=ok",
+  "NETLIFY_SITE_ID=ok",
+  "NETLIFY_CONTENTPOLICY='strict-csp'",
+  SERVICE_ROLE='ok',
+  SUPABASE_URL='https://api.supabase.com',
+  SUPABASE_ANON_KEY='ok',
+  SUPABASE_RTLS=no
+ ]
+
+# CPS
+--lKontent-Security-Policy: default-src self-same https://api.openai.com https://*.supabase.co;"
