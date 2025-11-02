@@ -1,40 +1,33 @@
 name: UA Apply Patch
-
 on:
   workflow_dispatch:
     inputs:
       patch_b64:
-        description: "Patch (base64, format git apply)"
+        description: "Patch .diff/.patch encodé base64"
         required: true
-        type: string
-
 permissions:
   contents: write
   pull-requests: write
-
 jobs:
-  apply:
+  apply-patch:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+        with: { fetch-depth: 0 }
       - name: Apply patch (force overwrite if exists)
         run: |
           set -euo pipefail
           echo "${{ inputs.patch_b64 }}" | base64 -d > /tmp/ua.patch
           BR="ua/patch-$(date +%s)"
           git checkout -b "$BR" || git switch "$BR"
-          # appliquer le patch même si les fichiers existent déjà
           git apply --whitespace=fix --reject /tmp/ua.patch || true
           git add -A
-          git config user.name "parlios-ua[bot]"
+          git config user.name  "parlios-ua[bot]"
           git config user.email "parlios-ua[bot]@users.noreply.github.com"
           git commit -am "ua: force patch apply (overwrite existing files)" || true
           git push -u origin "$BR" || true
-
-      - name: Create PR
-        uses: peter-evans/create-pull-request@v6
+      - uses: peter-evans/create-pull-request@v6
         with:
           title: "UA: apply patch"
-          body: "Patch appliqué automatiquement (force overwrite)."
-          base: "main"
+          body:  "Patch appliqué automatiquement (force overwrite)."
+          base:  "main"
