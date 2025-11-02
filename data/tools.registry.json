@@ -1,0 +1,11 @@
+{
+  "site_base_url": "https://www.parlios.fr",
+  "tools": [
+    {
+      "slug": "ai-bio-booster",
+      "name": "AI Bio Booster",
+      "tagline": "Booste ta bio pro en 30s.",
+      "enabled": true
+    }
+  ]
+}
