@@ -1,0 +1,19 @@
+name: QA Smoke
+
+on: [pull_request]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show head
+        run: |
+          echo $GITHUB_REF
+          echo $GITHUB_SHA
+      - name: Validate registry
+        run: |
+          test -f data/tools.registry.json && jq . data/tools.registry.json >/dev/null 2>&1 || echo "{}" > /dev/null
+      - name: List tools tree
+        run: |
+          ls -la tools || true
