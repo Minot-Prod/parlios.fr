@@ -1,0 +1,34 @@
+name: QA (Playwright smoke)
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ui-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm init -y
+      - run: npm i -D @playwright/test
+      - run: npx playwright install --with-deps
+      - name: Run smoke test against PROD
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
+        run: |
+          mkdir -p tests
+          cat > tests/bio.spec.ts <<'EOF'
+          import { test, expect } from "@playwright/test";
+          test("AI Bio Booster génère du texte", async ({ page }) => {
+            await page.goto("https://www.parlios.fr/tools/ai-bio-booster/");
+            await page.locator("#prompt").fill("Développeur IA, focus ROI et automation.");
+            await page.locator("#tone").selectOption({ label: "LinkedIn" });
+            await page.getByRole("button", { name: "Générer ma bio" }).click();
+            const out = page.locator("pre#result");
+            await expect(out).toHaveText(/Développeur|automation|IA/i, { timeout: 15000 });
+            await expect(page.locator("#status")).toHaveText(/Fini|✅/i);
+          });
+          EOF
+          npx playwright test --reporter=dot
