@@ -1,0 +1,34 @@
+name: UA Auto-Enable AutoMerge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.pull_request.title, 'UA:')
+    steps:
+      - name: Enable auto-merge (squash) via GraphQL
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNodeId = context.payload.pull_request.node_id
+            const mutation = `
+              mutation ($prId: ID!, $method: PullRequestMergeMethod!) {
+                enablePullRequestAutoMerge(input: { pullRequestId: $prId, mergeMethod: $method }) {
+                  clientMutationId
+                }
+              }
+            `;
+            try {
+              await github.graphql(mutation, { prId: prNodeId, method: "SQUASH" });
+              core.info("Auto-merge activé (SQUASH). Sera déclenché quand tous les checks requis seront verts.")
+            } catch (e) {
+              core.warning("Impossible d’activer l’auto-merge (peut-être pas autorisé côté repo). Détails: " + e.message)
+            }
