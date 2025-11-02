@@ -1,0 +1,90 @@
+name: QA Smoke
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed tools
+        id: detect
+        run: |
+          set -euo pipefail
+
+          BASE="${{ github.event.pull_request.base.sha || 'origin/main' }}"
+          HEAD="${{ github.sha }}"
+
+          # Liste des fichiers modifiés dans la PR
+          git fetch --no-tags --prune --depth=0 origin +refs/heads/*:refs/remotes/origin/*
+          CHANGED="$(git diff --name-only "$BASE" "$HEAD" || true)"
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          # Extrait les slugs d’outils modifiés
+          SLUGS=$(echo "$CHANGED" | awk -F'/' '/^tools\/[^/]+\// {print $2}' | sort -u)
+          if [ -z "$SLUGS" ]; then
+            echo "Aucun outil modifié, on sort proprement."
+            echo "slugs=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "Outils impactés: $SLUGS"
+          echo "slugs=$SLUGS" >> $GITHUB_OUTPUT
+
+      - name: Validate tool structure and branding
+        if: steps.detect.outputs.slugs != ''
+        run: |
+          set -euo pipefail
+          FAILS=0
+
+          for SLUG in ${{ steps.detect.outputs.slugs }}; do
+            PATH_DIR="tools/${SLUG}"
+            INDEX="${PATH_DIR}/index.html"
+
+            echo "== QA ${SLUG} =="
+
+            # 1) index.html existe
+            if [ ! -f "$INDEX" ]; then
+              echo "::error title=${SLUG}::index.html manquant (${INDEX})"
+              FAILS=$((FAILS+1))
+              continue
+            fi
+
+            # 2) inclus obligatoires
+            grep -qE 'href="/styles.base.css"' "$INDEX" || { echo "::error title=${SLUG}::/styles.base.css non inclus"; FAILS=$((FAILS+1)); }
+            grep -qE 'partials/header\.html' "$INDEX" || { echo "::warning title=${SLUG}::header non injecté statiquement (OK si ajouté côté build, mais recommandé de l’inclure)"; }
+            grep -qE 'href="./styles.css"' "$INDEX" || { echo "::warning title=${SLUG}::.styles.css local non référencé (optionnel)"; }
+
+            # 3) assets locaux attendus
+            [ -f "${PATH_DIR}/styles.css" ] || echo "::notice title=${SLUG}::.styles.css absent (pas bloquant)"
+            [ -f "${PATH_DIR}/script.js" ] || echo "::notice title=${SLUG}::.script.js absent (OK si outil purement statique)"
+
+            # 4) 404 évidentes (fichiers référencés en ./ existent)
+            MISSING=0
+            for REF in $(grep -oE 'href="\./[^"]+|src="\./[^"]+' "$INDEX" | sed 's/^href="\.\///; s/^src="\.\///; s/"$//'); do
+              test -f "${PATH_DIR}/${REF}" || { echo "::error title=${SLUG}::Asset manquant ./$(basename "$REF") (référencé dans index.html)"; MISSING=$((MISSING+1)); }
+            done
+            [ $MISSING -gt 0 ] && FAILS=$((FAILS+MISSING))
+
+            echo "== /QA ${SLUG} =="
+          done
+
+          if [ $FAILS -gt 0 ]; then
+            echo "::error::QA Smoke a détecté ${FAILS} problème(s) bloquant(s)."
+            exit 1
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "QA Smoke terminé."
