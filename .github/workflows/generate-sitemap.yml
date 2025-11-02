@@ -1,0 +1,32 @@
+name: Generate Sitemap
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "data/tools.registry.json"
+      - ".github/workflows/generate-sitemap.yml"
+  workflow_dispatch:
+permissions: { contents: write }
+jobs:
+  build-sitemap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Generate sitemap from manifest
+        run: |
+          node -e '
+          const fs=require("fs");
+          const cfg=JSON.parse(fs.readFileSync("data/tools.registry.json","utf8"));
+          const base=(cfg.site_base_url||"https://www.parlios.fr").replace(/\/+$/,"");
+          const tools=(cfg.tools||[]).filter(t=>t.enabled);
+          const urls=[`${base}/`,`${base}/tools/`,...tools.map(t=>`${base}/tools/${t.slug}/`)];
+          const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`+
+            urls.map(u=>`  <url><loc>${u}</loc></url>`).join("\n")+`\n</urlset>\n`;
+          fs.writeFileSync("sitemap.xml",xml,"utf8");'
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "chore(ci): update sitemap.xml from tools registry"
+          file_pattern: "sitemap.xml"
