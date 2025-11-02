@@ -1,6 +1,0 @@
-:root{--bg:#0b0c10;--card:#15171c;--text:#e8eaf0;--muted:#a8adbb;--accent:#66fcf1}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial}
-.container{max-width:900px;margin:32px auto;padding:0 16px}
-.card{background:var(--card);padding:16px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
-a.cta{display:inline-block;background:var(--accent);color:#001c1a;padding:12px 16px;border-radius:12px;text-decoration:none;font-weight:700}
