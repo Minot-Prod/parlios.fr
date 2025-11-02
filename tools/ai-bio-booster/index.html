@@ -1,0 +1,24 @@
+<!doctype html><html lang="fr"><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AI Bio Booster — Parlios</title>
+<link rel="stylesheet" href="./styles.css"/>
+<main class="container">
+  <section class="card">
+    <h1>AI Bio Booster</h1>
+    <label>Décris-toi (8–10 mots minimum)</label>
+    <textarea id="prompt" placeholder="Ex: Dev IA à Montréal, obsédé par l’UX et le ROI."></textarea>
+    <div class="row">
+      <label for="tone">Ton</label>
+      <select id="tone">
+        <option>Professionnel</option>
+        <option>LinkedIn</option>
+        <option>Clair & direct</option>
+      </select>
+      <button id="go">Générer ma bio</button>
+    </div>
+    <div id="status"></div>
+    <pre id="result"></pre>
+    <div class="cta-row"><a id="cta" class="cta" href="#" target="_blank" rel="noopener">⭐ Débloquer le pack Pro</a></div>
+  </section>
+</main>
+<script type="module" src="./script.js"></script>
+</html>
